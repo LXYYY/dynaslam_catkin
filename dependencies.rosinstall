@@ -1,0 +1,44 @@
+- git:
+   local-name: eigen_catkin
+   uri: https://github.com/ethz-asl/eigen_catkin.git
+   version: 00b5eb2
+- git:
+   local-name: glog_catkin
+   uri: https://github.com/ethz-asl/glog_catkin.git
+   version: dcb4559
+- git:
+   local-name: gflags_catkin
+   uri: https://github.com/ethz-asl/gflags_catkin.git
+   version: 6021097
+- git:
+   local-name: eigen_checks
+   uri: https://github.com/ethz-asl/eigen_checks.git
+   version: 22a6247
+- git:
+   local-name: doxygen_catkin
+   uri: https://github.com/ethz-asl/doxygen_catkin.git
+   version: b76cc31
+- git:
+   local-name: catkin_simple
+   uri: https://github.com/catkin/catkin_simple.git
+   version: 0e62848
+- git:
+   local-name: pcl_catkin
+   uri: https://github.com/ethz-asl/pcl_catkin.git
+   version: 9e4365a
+- git:
+    local-name: opencv2_catkin
+    uri: https://github.com/LXYYY/opencv2_catkin.git
+    version: 05e43a3
+- git:
+    local-name: pangolin_catkin
+    uri: https://github.com/uzh-rpg/pangolin_catkin.git
+    version: 3e0ca0f
+- git:
+    local-name: dbow2_catkin
+    uri: https://github.com/LXYYY/dbow2_catkin.git
+    version: 0557201
+- git:
+    local-name: g2o_catkin
+    uri: https://github.com/LXYYY/g2o_catkin.git
+    version: c17ea8f

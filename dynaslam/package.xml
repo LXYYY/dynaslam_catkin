@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>dynaslam</name>
+  <version>0.0.1</version>
+  <description>dynaslam</description>
+  
+  <author email="xiangyu002@e.ntu.edu.sg">Xiangyu Liu</author>
+  
+  <maintainer email="xiangyu002@e.ntu.edu.sg">Xiangyu Liu</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
+  
+  <depend>cmake_modules</depend>
+  <depend>roscpp</depend>
+  <depend>opencv2_catkin</depend>
+  <depend>eigen_catkin</depend>
+  <depend>pangolin_catkin</depend>
+  <depend>dbow2_catkin</depend>
+  <depend>g2o_catkin</depend>
+  
+</package>
