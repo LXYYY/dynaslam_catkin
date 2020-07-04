@@ -45,3 +45,4 @@ Examples/Monocular/CARLA_KITTI03.yaml
 Examples/Monocular/CARLA_KITTI04-12.yaml
 
 .vscode/
+.idea/

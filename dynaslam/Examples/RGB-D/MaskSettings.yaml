@@ -1,5 +1,5 @@
 %YAML:1.0
-py_path: "./src/python/"
+py_path: "/home/lxy/Workspace/mrslam/catkin_ws/src/dynaslam_catkin/dynaslam/src/python/"
 module_name: "MaskRCNN"
 class_name: "Mask"
 get_dyn_seg: "GetDynSeg"

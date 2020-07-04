@@ -25,7 +25,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     // Output welcome message
     cout << endl <<
     "DynaSLAM Copyright (C) 2018 Berta Bescos, University of Zaragoza." << endl << endl;
-          
+
     cout << "Input sensor was set to: ";
 
     if(mSensor==MONOCULAR)

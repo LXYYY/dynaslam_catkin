@@ -11,10 +11,11 @@ import coco
 import utils
 import model as modellib
 
+
 print 'Initializing Mask RCNN network...'
 # Root directory of the project
 ROOT_DIR = os.getcwd()
-ROOT_DIR = "./src/python"
+ROOT_DIR = "/home/lxy/Workspace/mrslam/catkin_ws/src/dynaslam_catkin/dynaslam/src/python/"
 print(ROOT_DIR)
 
 # Directory to save logs and trained model
