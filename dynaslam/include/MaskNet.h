@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <boost/thread.hpp>
 #include "include/Conversion.h"
+#include <opencv2/imgproc.hpp>
 
 namespace DynaSLAM
 {
