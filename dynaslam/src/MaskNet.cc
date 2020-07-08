@@ -12,6 +12,8 @@
 #include <iomanip>
 #include <dirent.h>
 #include <errno.h>
+#include <tensorflow/core/public/session.h>
+#include <tensorflow/core/platform/env.h>
 
 namespace DynaSLAM
 {

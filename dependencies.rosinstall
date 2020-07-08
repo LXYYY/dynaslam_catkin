@@ -31,14 +31,24 @@
     uri: https://github.com/LXYYY/opencv2_catkin.git
     version: 05e43a3
 - git:
+    local-name: opencv3_catkin
+    uri: https://github.com/LXYYY/opencv3_catkin.git
+- git:
     local-name: pangolin_catkin
     uri: https://github.com/uzh-rpg/pangolin_catkin.git
     version: 3e0ca0f
 - git:
     local-name: dbow2_catkin
     uri: https://github.com/LXYYY/dbow2_catkin.git
-    version: 0557201
+
 - git:
     local-name: g2o_catkin
     uri: https://github.com/LXYYY/g2o_catkin.git
-    version: c17ea8f
+- git:
+    local-name: tensorflow_catkin
+    uri: https://github.com/LXYYY/tensorflow_catkin.git
+- git:
+    local-name: tensorflow_ros_cpp
+    uri: https://github.com/LXYYY/tensorflow_ros_cpp.git
+    
+

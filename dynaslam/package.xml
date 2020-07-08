@@ -20,6 +20,6 @@
   <depend>pangolin_catkin</depend>
   <depend>dbow2_catkin</depend>
   <depend>g2o_catkin</depend>
-  <depend>tensorflow_catkin</depend>
-
+  <depend>tensorflow_ros_cpp</depend>
+  <depend>tf_graph_executor</depend>
 </package>
