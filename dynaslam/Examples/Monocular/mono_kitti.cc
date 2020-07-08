@@ -44,8 +44,9 @@ int main(int argc, char **argv)
     DynaSLAM::SegmentDynObject *MaskNet;
     if (argc==5)
     {
+        DynaSLAM::SegParameters segParams;
         cout << "Loading Mask R-CNN. This could take a while..." << endl;
-        MaskNet = new DynaSLAM::SegmentDynObject();
+        MaskNet = new DynaSLAM::SegmentDynObject(segParams);
         cout << "Mask R-CNN loaded!" << endl;
     }
 

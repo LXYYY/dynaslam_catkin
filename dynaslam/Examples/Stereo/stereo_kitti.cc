@@ -8,13 +8,20 @@
  */
 
 #include <MaskNet.h>
-#include <opencv2/core/core.hpp>
+//#include <opencv2/core/core.hpp>
+#include <opencv2/core/hal/interface.h>
 #include <opencv2/core/mat.hpp>
-#include <opencv2/core/operations.hpp>
-#include <opencv2/core/types_c.h>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/highgui/highgui_c.h>
-#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/core/mat.inl.hpp>
+//#include <opencv2/core/operations.hpp>
+#include <opencv2/core/types.hpp>
+//#include <opencv2/core/types_c.h>
+//#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/highgui/highgui_c.h>
+#include <opencv2/imgcodecs/imgcodecs_c.h>
+#include <opencv2/imgcodecs.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/imgproc.hpp>
+#include <Parameters.h>
 #include <System.h>
 #include <unistd.h>
 #include <algorithm>
@@ -29,14 +36,14 @@
 
 using namespace std;
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft, vector<string> &vstrImageRight,
-                vector<double> &vTimestamps);
+void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
+                vector<string> &vstrImageRight, vector<double> &vTimestamps);
 
-int main(int argc, char **argv)
-{
-  if (argc != 4 && argc != 5)
-  {
-    cerr << endl << "Usage: ./stereo_kitti path_to_vocabulary path_to_settings path_to_sequence (path_to_masks)"
+int main(int argc, char **argv) {
+  if (argc != 4 && argc != 5) {
+    cerr
+        << endl
+        << "Usage: ./stereo_kitti path_to_vocabulary path_to_settings path_to_sequence (path_to_masks)"
         << endl;
     return 1;
   }
@@ -52,9 +59,11 @@ int main(int argc, char **argv)
   // Initialize Mask R-CNN
   cout << "Loading Mask R-CNN. This could take a while..." << endl;
   DynaSLAM::SegmentDynObject *MaskNet;
-  if (argc == 5)
-  {
-    MaskNet = new DynaSLAM::SegmentDynObject();
+  if (argc == 5) {
+    DynaSLAM::SegParameters segParams;
+    segParams.mask_rcnn_model_pb_path =
+        "/home/lxy/Workspace/mrslam/catkin_ws/src/dynaslam_catkin/dynaslam/src/python";
+    MaskNet = new DynaSLAM::SegmentDynObject(segParams);
   }
   cout << "Mask net loaded!" << endl;
 
@@ -74,19 +83,19 @@ int main(int argc, char **argv)
 
   // Dilation settings
   int dilation_size = 5;
-  cv::Mat kernel = getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(2 * dilation_size + 1, 2 * dilation_size + 1),
-                                         cv::Point(dilation_size, dilation_size));
+  cv::Mat kernel = getStructuringElement(
+      cv::MORPH_ELLIPSE, cv::Size(2 * dilation_size + 1, 2 * dilation_size + 1),
+      cv::Point(dilation_size, dilation_size));
 
-  for (int ni = 0; ni < nImages; ni++)
-  {
+  for (int ni = 0; ni < nImages; ni++) {
     // Read left and right images from file
     imLeft = cv::imread(vstrImageLeft[ni], CV_LOAD_IMAGE_UNCHANGED);
     imRight = cv::imread(vstrImageRight[ni], CV_LOAD_IMAGE_UNCHANGED);
     double tframe = vTimestamps[ni];
 
-    if (imLeft.empty())
-    {
-      cerr << endl << "Failed to load image at: " << string(vstrImageLeft[ni]) << endl;
+    if (imLeft.empty()) {
+      cerr << endl << "Failed to load image at: " << string(vstrImageLeft[ni])
+           << endl;
       return 1;
     }
 
@@ -102,15 +111,18 @@ int main(int argc, char **argv)
     cv::Mat maskLeft = cv::Mat::ones(h, w, CV_8U);
 
     // Segment out the images
-    if (argc == 5)
-    {
+    if (argc == 5) {
       cv::Mat maskLeftRCNN, maskRightRCNN;
       maskLeftRCNN = MaskNet->GetSegmentation(
-          imLeft, string(argv[4]) + "/imLeft",
-          vstrImageLeft[ni].replace(vstrImageLeft[ni].begin(), vstrImageLeft[ni].end() - 10, ""));
+          imLeft,
+          string(argv[4]) + "/imLeft",
+          vstrImageLeft[ni].replace(vstrImageLeft[ni].begin(),
+                                    vstrImageLeft[ni].end() - 10, ""));
       maskRightRCNN = MaskNet->GetSegmentation(
-          imRight, string(argv[4]) + "/imRight",
-          vstrImageRight[ni].replace(vstrImageRight[ni].begin(), vstrImageRight[ni].end() - 10, ""));
+          imRight,
+          string(argv[4]) + "/imRight",
+          vstrImageRight[ni].replace(vstrImageRight[ni].begin(),
+                                     vstrImageRight[ni].end() - 10, ""));
       cv::Mat maskLeftRCNNdil = maskLeftRCNN.clone();
       cv::dilate(maskLeftRCNN, maskLeftRCNNdil, kernel);
       maskLeft = maskLeft - maskLeftRCNNdil;
@@ -128,7 +140,8 @@ int main(int argc, char **argv)
         std::chrono::monotonic_clock::time_point t2 = std::chrono::monotonic_clock::now();
 #endif
 
-    double ttrack = std::chrono::duration_cast<std::chrono::duration<double> >(t2 - t1).count();
+    double ttrack = std::chrono::duration_cast<std::chrono::duration<double> >(
+        t2 - t1).count();
 
     vTimesTrack[ni] = ttrack;
 
@@ -149,8 +162,7 @@ int main(int argc, char **argv)
   // Tracking time statistics
   sort(vTimesTrack.begin(), vTimesTrack.end());
   float totaltime = 0;
-  for (int ni = 0; ni < nImages; ni++)
-  {
+  for (int ni = 0; ni < nImages; ni++) {
     totaltime += vTimesTrack[ni];
   }
   cout << "-------" << endl << endl;
@@ -163,18 +175,15 @@ int main(int argc, char **argv)
   return 0;
 }
 
-void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft, vector<string> &vstrImageRight,
-                vector<double> &vTimestamps)
-{
+void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft,
+                vector<string> &vstrImageRight, vector<double> &vTimestamps) {
   ifstream fTimes;
   string strPathTimeFile = strPathToSequence + "/times.txt";
   fTimes.open(strPathTimeFile.c_str());
-  while (!fTimes.eof())
-  {
+  while (!fTimes.eof()) {
     string s;
     getline(fTimes, s);
-    if (!s.empty())
-    {
+    if (!s.empty()) {
       stringstream ss;
       ss << s;
       double t;
@@ -190,8 +199,7 @@ void LoadImages(const string &strPathToSequence, vector<string> &vstrImageLeft, 
   vstrImageLeft.resize(nTimes);
   vstrImageRight.resize(nTimes);
 
-  for (int i = 0; i < nTimes; i++)
-  {
+  for (int i = 0; i < nTimes; i++) {
     stringstream ss;
     ss << setfill('0') << setw(6) << i;
     vstrImageLeft[i] = strPrefixLeft + ss.str() + ".png";
