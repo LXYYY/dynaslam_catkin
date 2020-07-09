@@ -81,17 +81,17 @@ int main(int argc, char **argv)
                                            cv::Size( 2*dilation_size + 1, 2*dilation_size+1 ),
                                            cv::Point( dilation_size, dilation_size ) );
 
-    if (argc==7)
-    {
-        std::string dir = string(argv[6]);
-        mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        dir = string(argv[6]) + "/rgb/";
-        mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        dir = string(argv[6]) + "/depth/";
-        mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-        dir = string(argv[6]) + "/mask/";
-        mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    }
+    // if (argc==7)
+    // {
+    //     std::string dir = string(argv[6]);
+    //     mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    //     dir = string(argv[6]) + "/rgb/";
+    //     mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    //     dir = string(argv[6]) + "/depth/";
+    //     mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    //     dir = string(argv[6]) + "/mask/";
+    //     mkdir(dir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    // }
 
     // Main loop
         cv::Mat imRGB, imD;

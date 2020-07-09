@@ -40,14 +40,6 @@ find_package(Qt5Concurrent REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Test REQUIRED)
 
-find_package(PythonLibs REQUIRED)
-if (NOT PythonLibs_FOUND)
-    message(FATAL_ERROR "PYTHON LIBS not found.")
-else()
-    message("PYTHON LIBS were found!")
-    message("PYTHON LIBS DIRECTORY: " ${PYTHON_LIBRARY})
-endif()
-
 find_package(Boost REQUIRED COMPONENTS thread)
 if(Boost_FOUND)
     message("Boost was found!")
@@ -56,13 +48,9 @@ if(Boost_FOUND)
     message("Found Libraries: " ${Boost_LIBRARIES})
 endif()
 
-set(PYTHON_INCLUDE_DIRS ${PYTHON_INCLUDE_DIRS} /usr/local/lib/python2.7/dist-packages/numpy/core/include/numpy)
-
 include_directories(
 ${PROJECT_SOURCE_DIR}
 ${PROJECT_SOURCE_DIR}/include
-/usr/include/python2.7/
-/usr/lib/python2.7/dist-packages/numpy/core/include/numpy/
 ${Boost_INCLUDE_DIRS}
 )
 message("PROJECT_SOURCE_DIR: " ${PROJECT_SOURCE_DIR})
@@ -93,7 +81,6 @@ src/Geometry.cc
 )
 
 target_link_libraries(${PROJECT_NAME}
-/usr/lib/x86_64-linux-gnu/libpython2.7.so
 ${Boost_LIBRARIES}
 )
 
