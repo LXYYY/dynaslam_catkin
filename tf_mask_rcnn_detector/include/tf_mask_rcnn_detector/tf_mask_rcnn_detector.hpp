@@ -83,13 +83,13 @@ private:
   const MaskRCNNParameters mParameters;
 
 public:
-  inline void DetectImages(std::vector<cv::Mat> &images)
+  cv::Mat DetectImages(std::vector<cv::Mat> &images)
   {
     assert(images.size() && (images.at(0).channels() == 1 || images.at(0).channels() == 3));
     if (images.at(0).channels() == 1)
       for (cv::Mat &image : images)
         cv::cvtColor(image, image, CV_GRAY2BGR);
-        
+
     tensorflow::Tensor inputTensor =
         tensorflow::Tensor(tensorflow::DT_FLOAT, { mParameters.batchSize, mParameters.inputImgH, mParameters.inputImgW,
                                                    mParameters.inputImgC });
@@ -101,10 +101,12 @@ public:
     BatchExecuteModel(inputTensor, &outputTensors);
     std::vector<ImageDetectInfo> outputVec;
     UnmoldDetections(outputTensors, outputVec);
+
+    return cv::Mat();
   }
 
 private:
-  inline void MoldInputImages(std::vector<cv::Mat> &inputImages)
+  void MoldInputImages(std::vector<cv::Mat> &inputImages)
   {
     for (cv::Mat &image : inputImages)
     {
@@ -114,13 +116,13 @@ private:
                    image);
     }
   }
-  inline void ResizeImage(cv::Mat &image, std::vector<int> &window)
+  void ResizeImage(cv::Mat &image, std::vector<int> &window)
   {
     int minDim = mParameters.imageMinDim;
-    int maxDim = mParameters.imageMinDim;
+    int maxDim = mParameters.imageMaxDim;
     bool padding = mParameters.imagePadding;
-    int w = image.size[0];
-    int h = image.size[1];
+    int w = image.cols;
+    int h = image.rows;
     window = { 0, 0, h, w };
 
     float scale = 1.0;
@@ -135,10 +137,12 @@ private:
 
     if (scale != 1)
     {
-      cv::resize(image, image, cv::Size(), scale);
+      cv::resize(image, image, cv::Size(), scale, scale);
     }
     if (padding)
     {
+      w = image.cols;
+      h = image.rows;
       int topPad = std::floor((maxDim - h) / 2);
       int bottomPad = maxDim - h - topPad;
       int leftPad = std::floor((maxDim - w) / 2);
@@ -147,7 +151,7 @@ private:
       window = { topPad, leftPad, h + topPad, w + leftPad };
     }
   }
-  inline void CvMatsToTensor(const std::vector<cv::Mat> &inputImages, tensorflow::Tensor *outputTensor)
+  void CvMatsToTensor(const std::vector<cv::Mat> &inputImages, tensorflow::Tensor *outputTensor)
   {
     // TODO need to minus mean?
     // TODO what is this 4?
@@ -160,7 +164,7 @@ private:
             tensorData(b, r, c, chn) = inputImages[b].at<cv::Vec3b>(r, c)[chn];
   }
 
-  inline void BatchExecuteModel(tensorflow::Tensor &inputTensor, std::vector<tensorflow::Tensor> *outputTensors)
+  void BatchExecuteModel(tensorflow::Tensor &inputTensor, std::vector<tensorflow::Tensor> *outputTensors)
   {
     tensorflow::Status status_run = mpSession->Run({ { mParameters.inputTensorNames[0], inputTensor },
                                                      { mParameters.inputTensorNames[1], mtInputMetaDataTensor },
@@ -175,7 +179,7 @@ private:
       throw std::runtime_error("Error: Run failed!\n status: " + status_run.ToString() + "\n");
   }
 
-  inline void UnmoldDetections(std::vector<tensorflow::Tensor> &inputTensors, std::vector<ImageDetectInfo> &outputVec)
+  void UnmoldDetections(std::vector<tensorflow::Tensor> &inputTensors, std::vector<ImageDetectInfo> &outputVec)
   {
     tensorflow::Tensor &detections_tensor = inputTensors[0];
     auto boxes_tensor = detections_tensor.tensor<float, 3>();

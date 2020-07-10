@@ -112,7 +112,7 @@ catkin_add_gtest(${project_name}_tests
    test/test_main.cpp
    test/test_mask_rcnn_detector.cpp)
 
-target_link_libraries(${project_name}_tests ${project_name})
+target_link_libraries(${project_name}_tests ${PROJECT_NAME})
 
 # add_doxygen(REQUIRED)
 

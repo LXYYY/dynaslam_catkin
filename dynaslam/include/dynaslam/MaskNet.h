@@ -55,8 +55,15 @@ public:
   {
   }
 
-  cv::Mat GetSegmentation(cv::Mat &image, std::string dir, std::string name);
-
+  inline cv::Mat GetSegmentation(cv::Mat &image)
+  {
+    std::vector<cv::Mat> images;
+    images.emplace_back(image);
+    return mpMaskDetector->DetectImages(images);
+  }
+  inline cv::Mat GetSegmentation(cv::Mat &image,std::string dir, std::string name){
+    return GetSegmentation(image);
+  }
 private:
   std::shared_ptr<tf_mask_rcnn_detector::TensorFlowMaskRCNNDetector> mpMaskDetector;
 

@@ -17,8 +17,5 @@
 
 namespace DynaSLAM
 {
-cv::Mat SegmentDynObject::GetSegmentation(cv::Mat &image, std::string dir, std::string name)
-{
 
-}
 }  // namespace DynaSLAM

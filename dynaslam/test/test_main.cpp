@@ -1,6 +1,7 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-#include <MaskNet.h>
+#include "dynaslam/MaskNet.h"
+
 
 int main(int argc, char **argv)
 {

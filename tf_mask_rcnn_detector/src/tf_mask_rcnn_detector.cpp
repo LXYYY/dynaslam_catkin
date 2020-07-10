@@ -56,7 +56,7 @@ void TensorFlowMaskRCNNDetector::ComposeImageMeta()
   std::vector<float> imageMeta;
   imageMeta.insert(imageMeta.begin(), 0);
   imageMeta.insert(imageMeta.begin(), mParameters.inputImageShape.begin(), mParameters.inputImageShape.end());
-  cv::Mat tImage = cv::Mat::zeros(cv::Size(mParameters.inputImgW, mParameters.inputImgH), CV_8UC3);
+  cv::Mat tImage = cv::Mat::zeros(cv::Size(mParameters.inputImageShape[0], mParameters.inputImageShape[1]), CV_8UC3);
   std::vector<int> tWindow;
   ResizeImage(tImage, tWindow);
   imageMeta.insert(imageMeta.begin(), tWindow.begin(), tWindow.end());
