@@ -40,8 +40,9 @@ struct MaskRCNNParameters
 
   std::string inputTensorNames[3] = { "input_image_1", "input_image_meta_1",
                                       "input_anchors_1" };  //网络输入的tensor的名字,对应于模型
-  std::string outputTensorNames[5] = { "output_detections", "output_mrcnn_class", "output_mrcnn_bbox",
-                                       "output_mrcnn_mask", "output_rois" };  //网络输出的tensor的名字,对应于模型
+  std::string outputTensorNames[7] = { "output_detections", "output_mrcnn_class", "output_mrcnn_bbox",
+                                       "output_mrcnn_mask", "output_rois",        " output_rpn_class",
+                                       "output_rpn_bbox" };  //网络输出的tensor的名字,对应于模型
 };
 class TensorFlowMaskRCNNDetector
 {
@@ -77,16 +78,29 @@ private:
 
   const MaskRCNNParameters mParameters;
 
+public:
+  inline void DetectImages(const std::vector<cv::Mat> &images)
+  {
+    tensorflow::Tensor inputTensor =
+        tensorflow::Tensor(tensorflow::DT_FLOAT, { mParameters.batchSize, mParameters.inputImgH, mParameters.inputImgW,
+                                                   mParameters.inputImgC });
+    CvMatsToTensor(images, &inputTensor);
+
+    std::vector<tensorflow::Tensor> outputTensors;
+    BatchExecuteModel(inputTensor, &outputTensors);
+    std::vector<ImageDetectInfo> outputVec;
+    UnmoldDetections(outputTensors, outputVec);
+  }
+
 private:
-  inline void CvMatsToTensor(std::vector<cv::Mat> &inputImages, tensorflow::Tensor *outputTensor)
+  inline void CvMatsToTensor(const std::vector<cv::Mat> &inputImages, tensorflow::Tensor *outputTensor)
   {
     // TODO need to minus mean?
     // TODO what is this 4?
     // TODO channels?
     auto tensorData = outputTensor->tensor<float, 4>();
-    for (size_t b = 0; b < inputImages.size(); b++)        //遍历图像张数
-      for (int r = 0; r < tensorData.dimension(1);
-      Eigen::MatrixXf scaleNorm_rMat(1, 4); r++)    //遍历行数
+    for (size_t b = 0; b < inputImages.size(); b++)  //遍历图像张数
+      for (int r = 0; r < tensorData.dimension(1); r++)
         for (int c = 0; c < tensorData.dimension(2); c++)  //遍历列数
           for (int chn = 0; chn < tensorData.dimension(3); chn++)
             tensorData(b, r, c, chn) = inputImages[b].at<cv::Vec3b>(r, c)[chn];
@@ -133,7 +147,7 @@ private:
       Eigen::MatrixXf boxMat(noZeroMat.rows(), 4);
       Eigen::MatrixXf classSoresMat(noZeroMat.rows(), 2);
       boxMat.block(0, 0, boxMat.rows(), 4) = noZeroMat.block(0, 0, noZeroMat.rows(), 4);
-      classSoresMat.block(0, 0, classSoresMat.rows(), 2) = noZeroMat.block(0, 4, classSoresMat.rows(), 2
+      classSoresMat.block(0, 0, classSoresMat.rows(), 2) = noZeroMat.block(0, 4, classSoresMat.rows(), 2);
 
       // get the window in image meta
       auto metaTensor = mtInputMetaDataTensor.tensor<float, 2>();

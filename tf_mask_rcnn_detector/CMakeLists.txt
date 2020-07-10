@@ -16,9 +16,11 @@ cs_add_library(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME})
 
-#find_package(Boost REQUIRED COMPONENTS system thread)
+catkin_add_gtest(${project_name}_tests
+   test/test_mask_detector.cpp)
 
-#add_doxygen(REQUIRED)
+target_link_libraries(${project_name}_tests ${project_name})
+
 
 cs_install()
 cs_export()

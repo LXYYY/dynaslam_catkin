@@ -22,4 +22,6 @@
   <depend>g2o_catkin</depend>
   <depend>tensorflow_ros_cpp</depend>
   <depend>tf_mask_rcnn_detector</depend>
+  <depend>doxygen_catkin</depend>
+
 </package>

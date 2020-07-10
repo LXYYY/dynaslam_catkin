@@ -108,9 +108,12 @@ cs_add_executable(mono_kitti
 Examples/Monocular/mono_kitti.cc)
 target_link_libraries(mono_kitti ${PROJECT_NAME})
 
-#add_executable(mono_carla
-#Examples/Monocular/mono_carla.cc)
-#target_link_libraries(mono_carla ${PROJECT_NAME})
+# catkin_add_gtest(${project_name}_tests
+#    test/test_mask_detector.cpp)
+
+# target_link_libraries(${project_name}_tests ${project_name})
+
+add_doxygen(REQUIRED)
 
 cs_install()
 cs_export()
