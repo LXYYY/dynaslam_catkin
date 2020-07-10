@@ -5,13 +5,13 @@
 #include <tensorflow/core/public/session.h>
 #include <tensorflow/core/public/session_options.h>
 #include <Eigen/Dense>
+#include <algorithm>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include <string>
 #include <unsupported/Eigen/CXX11/Tensor>
 #include <vector>
 #include "data_format.hpp"
-
 namespace tf_mask_rcnn_detector
 {
 struct MaskRCNNParameters
@@ -22,6 +22,10 @@ struct MaskRCNNParameters
   int inputImgW = 512;  //输入图像的宽度 image width
   int inputImgH = 512;  //输入图像的高度 image height
   int inputImgC = 3;    //输入图像的通道 image channels
+  std::vector<int> inputImageShape = { 1241, 376, 3 };
+  int imageMinDim = 800;
+  int imageMaxDim = 1024;
+  bool imagePadding = true;
   int numInputImage = 1;
   int numClasses = 1 + 80;
   int tfMaskRCNNImageMetaDataLength;  //=12+num_classes;//这里的19是12+7(7是有七类)  //图像的meta数据的长度,一般
@@ -67,9 +71,9 @@ private:
   void ComposeImageMeta();
   void GetAnchors();
 
-  float mImageMeta[19] = {};  // for image_meta
-  int mBackboneShape[5][2];   // for backbone_shape
-  int mAnchorCache[2] = {};   //用于缓存 for cache ;
+  // float mImageMeta[93] = {};  // dim num from dynaslam
+  int mBackboneShape[5][2];  // for backbone_shape
+  int mAnchorCache[2] = {};  //用于缓存 for cache ;
   tensorflow::Tensor mtInputMetaDataTensor;
   tensorflow::Tensor mtInputAnchorsTensor;
   Eigen::MatrixXf mFinalBox;
@@ -79,11 +83,18 @@ private:
   const MaskRCNNParameters mParameters;
 
 public:
-  inline void DetectImages(const std::vector<cv::Mat> &images)
+  inline void DetectImages(std::vector<cv::Mat> &images)
   {
+    assert(images.size() && (images.at(0).channels() == 1 || images.at(0).channels() == 3));
+    if (images.at(0).channels() == 1)
+      for (cv::Mat &image : images)
+        cv::cvtColor(image, image, CV_GRAY2BGR);
+        
     tensorflow::Tensor inputTensor =
         tensorflow::Tensor(tensorflow::DT_FLOAT, { mParameters.batchSize, mParameters.inputImgH, mParameters.inputImgW,
                                                    mParameters.inputImgC });
+
+    MoldInputImages(images);
     CvMatsToTensor(images, &inputTensor);
 
     std::vector<tensorflow::Tensor> outputTensors;
@@ -93,6 +104,49 @@ public:
   }
 
 private:
+  inline void MoldInputImages(std::vector<cv::Mat> &inputImages)
+  {
+    for (cv::Mat &image : inputImages)
+    {
+      std::vector<int> window;
+      ResizeImage(image, window);
+      cv::subtract(image, cv::Scalar(mParameters.meanPixel[0], mParameters.meanPixel[1], mParameters.meanPixel[2]),
+                   image);
+    }
+  }
+  inline void ResizeImage(cv::Mat &image, std::vector<int> &window)
+  {
+    int minDim = mParameters.imageMinDim;
+    int maxDim = mParameters.imageMinDim;
+    bool padding = mParameters.imagePadding;
+    int w = image.size[0];
+    int h = image.size[1];
+    window = { 0, 0, h, w };
+
+    float scale = 1.0;
+    if (minDim > 0)
+      scale = std::max(1.f, static_cast<float>(minDim) / std::min(h, w));
+    if (maxDim > 0)
+    {
+      float imageMax = std::max(h, w);
+      if (round(imageMax * scale) > maxDim)
+        scale = static_cast<float>(maxDim) / imageMax;
+    }
+
+    if (scale != 1)
+    {
+      cv::resize(image, image, cv::Size(), scale);
+    }
+    if (padding)
+    {
+      int topPad = std::floor((maxDim - h) / 2);
+      int bottomPad = maxDim - h - topPad;
+      int leftPad = std::floor((maxDim - w) / 2);
+      int rightPad = maxDim - w - leftPad;
+      cv::copyMakeBorder(image, image, topPad, bottomPad, leftPad, rightPad, cv::BORDER_CONSTANT, cv::Scalar(0));
+      window = { topPad, leftPad, h + topPad, w + leftPad };
+    }
+  }
   inline void CvMatsToTensor(const std::vector<cv::Mat> &inputImages, tensorflow::Tensor *outputTensor)
   {
     // TODO need to minus mean?
@@ -113,7 +167,8 @@ private:
                                                      { mParameters.inputTensorNames[2], mtInputAnchorsTensor } },
                                                    { mParameters.inputTensorNames[0], mParameters.outputTensorNames[1],
                                                      mParameters.outputTensorNames[2], mParameters.outputTensorNames[3],
-                                                     mParameters.inputTensorNames[4] },
+                                                     mParameters.inputTensorNames[4], mParameters.outputTensorNames[5],
+                                                     mParameters.outputTensorNames[6] },
                                                    {}, { outputTensors });
 
     if (!status_run.ok())

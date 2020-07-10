@@ -3,11 +3,12 @@
 #include "tf_mask_rcnn_detector/tf_mask_rcnn_detector.hpp"
 namespace tf_mask_rcnn_detector
 {
-TensorFlowMaskRCNNDetector::TensorFlowMaskRCNNDetector(const MaskRCNNParameters& parameters) : mParameters(parameters)
+TensorFlowMaskRCNNDetector::TensorFlowMaskRCNNDetector(const MaskRCNNParameters &parameters) : mParameters(parameters)
 {
   ComposeImageMeta();
   GetAnchors();
 }
+
 TensorFlowMaskRCNNDetector::~TensorFlowMaskRCNNDetector()
 {
   std::vector<tensorflow::Tensor>().swap(mvtOutputs);
@@ -18,6 +19,7 @@ TensorFlowMaskRCNNDetector::~TensorFlowMaskRCNNDetector()
     std::cout << "Session closed." << std::endl;
   }
 }
+
 void TensorFlowMaskRCNNDetector::LoadModel(std::string modelPath)
 {
   tensorflow::SessionOptions opts;
@@ -51,48 +53,22 @@ void TensorFlowMaskRCNNDetector::LoadModel(std::string modelPath)
 
 void TensorFlowMaskRCNNDetector::ComposeImageMeta()
 {
-  int imglongSide, inputlongSide;
-  mImageMeta[0] = 0;
-  // original_image_shape: [H, W, C] before resizing or padding.
-  mImageMeta[1] = mParameters.inputImgH;
-  mImageMeta[2] = mParameters.inputImgW;
-  mImageMeta[3] = mParameters.inputImgC;
-  imglongSide = mImageMeta[1] >= mImageMeta[2] ? mImageMeta[1] : mImageMeta[2];
-
-  // image_shape: [H, W, C] after resizing and padding
-  mImageMeta[4] = mParameters.inputTnsH;
-  mImageMeta[5] = mParameters.inputTnsW;
-  mImageMeta[6] = mParameters.inputTnsC;
-  inputlongSide = mImageMeta[4] >= mImageMeta[5] ? mImageMeta[4] : mImageMeta[5];
-
-  // window: (y1, x1, y2, x2) in pixels. The area of the image where the real image is (excluding the padding)
-  mImageMeta[7] = 0;
-  mImageMeta[8] = 0;
-  mImageMeta[9] = mParameters.inputTnsH;  //因为我的图像都是裁剪好再送进去的,所以窗口的长宽与实际图像长宽一致
-  mImageMeta[10] = mParameters.inputTnsW;
-
-  // scale: The scaling factor applied to the original image (float32)
-  mImageMeta[11] = inputlongSide / imglongSide;
-
-  // active_class_ids: List of class_ids available in the dataset from which the image came.
-  for (int i = mParameters.tfMaskRCNNImageMetaDataLength - mParameters.numClasses;
-       i < mParameters.tfMaskRCNNImageMetaDataLength; i++)
-  {
-    mImageMeta[i] = 0;
-  }
+  std::vector<float> imageMeta;
+  imageMeta.insert(imageMeta.begin(), 0);
+  imageMeta.insert(imageMeta.begin(), mParameters.inputImageShape.begin(), mParameters.inputImageShape.end());
+  cv::Mat tImage = cv::Mat::zeros(cv::Size(mParameters.inputImgW, mParameters.inputImgH), CV_8UC3);
+  std::vector<int> tWindow;
+  ResizeImage(tImage, tWindow);
+  imageMeta.insert(imageMeta.begin(), tWindow.begin(), tWindow.end());
+  std::vector<int> tClassIds(mParameters.numInputImage, 0);
+  imageMeta.insert(imageMeta.begin(), tClassIds.begin(), tClassIds.end());
 
   mtInputMetaDataTensor =
-      tensorflow::Tensor(tensorflow::DT_FLOAT, { mParameters.batchSize, mParameters.tfMaskRCNNImageMetaDataLength });
-
-  auto inputMetadataTensorMap = mtInputMetaDataTensor.tensor<float, 2>();
-  for (int j = 0; j < mParameters.batchSize; j++)
-  {
-    for (int i = 0; i < mParameters.tfMaskRCNNImageMetaDataLength; i++)
-    {
-      // std::cout<<"image_meta["<<i<<"] is "<<image_meta[i]<<std::endl;
-      inputMetadataTensorMap(j, i) = mImageMeta[i];
-    }
-  }
+      tensorflow::Tensor(tensorflow::DT_FLOAT, { mParameters.batchSize, static_cast<long long>(imageMeta.size()) });
+  auto inputMetadataTensorData = mtInputMetaDataTensor.flat<float>().data();
+  inputMetadataTensorData[0] = 0;
+  for (int i = 0; i < mParameters.batchSize; i++)
+    std::copy_n(imageMeta.begin(), imageMeta.size(), inputMetadataTensorData + i * imageMeta.size());
 }
 
 void TensorFlowMaskRCNNDetector::GetAnchors()
@@ -194,10 +170,12 @@ void TensorFlowMaskRCNNDetector::GetAnchors()
       int realsize_x = ((hight_x - low) / step);
       shifts_y.setLinSpaced(realsize_y, low, low + step * (realsize_y - 1));
       shifts_x.setLinSpaced(realsize_x, low, low + step * (realsize_x - 1));
-      shifts_y *= mParameters.backboneStrides
-          [j];  //获取feature_stride,这里的feature_stride其实是python代码中外围循环送进的参数mParameters.backboneStrides[j]
-      shifts_x *= mParameters.backboneStrides
-          [j];  //获取feature_stride,这里的feature_stride其实是python代码中外围循环送进的参数mParameters.backboneStrides[j]
+      shifts_y *=
+          mParameters.backboneStrides
+              [j];  //获取feature_stride,这里的feature_stride其实是python代码中外围循环送进的参数mParameters.backboneStrides[j]
+      shifts_x *=
+          mParameters.backboneStrides
+              [j];  //获取feature_stride,这里的feature_stride其实是python代码中外围循环送进的参数mParameters.backboneStrides[j]
 
       /*再进行   shifts_x, shifts_y = np.meshgrid(shifts_x, shifts_y),
       构造出最终的shifts_x,shifts_y矩阵,注意经过np.meshgrid后shifts_x,shifts_y是二维的矩阵
@@ -353,7 +331,7 @@ void TensorFlowMaskRCNNDetector::GetAnchors()
     Eigen::MatrixXf scaleMat =
         scaleMat_1r.colwise().replicate(mFinalBox.rows());  //通过重复与finalBox同样的行数构建scaleMat
     Eigen::MatrixXf shiftMat = shiftMat_1r.colwise().replicate(mFinalBox.rows());  //同上
-    Eigen::MatrixXf tmpMat = mFinalBox - shiftMat;    // finalBox对应位置元素减去偏移量
+    Eigen::MatrixXf tmpMat = mFinalBox - shiftMat;   // finalBox对应位置元素减去偏移量
     mFinalBoxNorm = tmpMat.cwiseQuotient(scaleMat);  // finalBox对应位置元素处以scale
     //至此完成了python代码中的boxes(mFinalBoxNorm),下一步把mFinalBoxNorm矩阵弄成Eigen::tensor类型的inputAnchorsTensor
     //再通过inputAnchorsTensor填充到tensorflow::tensor类型的mtInputAnchorsTensor构建最后送入模型的anchor boxes
