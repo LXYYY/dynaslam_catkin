@@ -21,11 +21,11 @@
 #ifndef LOCALMAPPING_H
 #define LOCALMAPPING_H
 
-#include "KeyFrame.h"
-#include "Map.h"
-#include "LoopClosing.h"
-#include "Tracking.h"
-#include "KeyFrameDatabase.h"
+#include "dynaslam/KeyFrame.h"
+#include "dynaslam/Map.h"
+#include "dynaslam/LoopClosing.h"
+#include "dynaslam/Tracking.h"
+#include "dynaslam/KeyFrameDatabase.h"
 
 #include <mutex>
 

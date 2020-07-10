@@ -18,10 +18,10 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "LocalMapping.h"
-#include "LoopClosing.h"
-#include "ORBmatcher.h"
-#include "Optimizer.h"
+#include "dynaslam/LocalMapping.h"
+#include "dynaslam/LoopClosing.h"
+#include "dynaslam/ORBmatcher.h"
+#include "dynaslam/Optimizer.h"
 #include <unistd.h>
 #include<mutex>
 

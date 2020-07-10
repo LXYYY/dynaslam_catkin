@@ -1,8 +1,6 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-#include "tf_mask_rcnn_detector/tf_mask_rcnn_detector.hpp"
-
-// TEST_F()
+#include <MaskNet.h>
 
 int main(int argc, char **argv)
 {

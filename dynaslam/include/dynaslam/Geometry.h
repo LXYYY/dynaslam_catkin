@@ -14,7 +14,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <vector>
 #include <opencv2/features2d/features2d.hpp>
-#include "Frame.h"
+#include "dynaslam/Frame.h"
 
 #define MAX_DB_SIZE 20
 #define MAX_REF_FRAMES 5

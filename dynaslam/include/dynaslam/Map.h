@@ -21,8 +21,8 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "MapPoint.h"
-#include "KeyFrame.h"
+#include "dynaslam/MapPoint.h"
+#include "dynaslam/KeyFrame.h"
 #include <set>
 
 #include <mutex>

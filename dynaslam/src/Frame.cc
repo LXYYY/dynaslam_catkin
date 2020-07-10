@@ -7,9 +7,9 @@
 *
 */
 
-#include "Frame.h"
-#include "Converter.h"
-#include "ORBmatcher.h"
+#include "dynaslam/Frame.h"
+#include "dynaslam/Converter.h"
+#include "dynaslam/ORBmatcher.h"
 #include <thread>
 
 namespace ORB_SLAM2

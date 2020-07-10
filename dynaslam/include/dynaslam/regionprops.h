@@ -34,7 +34,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
-#include "region.h"
+#include "dynaslam/region.h"
 
 class RegionProps {
     public:

@@ -18,7 +18,7 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "ORBmatcher.h"
+#include "dynaslam/ORBmatcher.h"
 
 #include<limits.h>
 

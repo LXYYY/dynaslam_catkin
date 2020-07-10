@@ -21,12 +21,12 @@
 #ifndef OPTIMIZER_H
 #define OPTIMIZER_H
 
-#include "Map.h"
-#include "MapPoint.h"
-#include "KeyFrame.h"
-#include "LoopClosing.h"
-#include "Frame.h"
-#include "Geometry.h"
+#include "dynaslam/Map.h"
+#include "dynaslam/MapPoint.h"
+#include "dynaslam/KeyFrame.h"
+#include "dynaslam/LoopClosing.h"
+#include "dynaslam/Frame.h"
+#include "dynaslam/Geometry.h"
 #include <g2o/types/types_seven_dof_expmap.h>
 
 namespace ORB_SLAM2

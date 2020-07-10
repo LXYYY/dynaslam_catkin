@@ -7,10 +7,10 @@
  *
  */
 
-#include <MaskNet.h>
+#include <dynaslam/MaskNet.h>
 //#include <opencv2/core/core.hpp>
-#include <Parameters.h>
-#include <System.h>
+#include <dynaslam/Parameters.h>
+#include <dynaslam/System.h>
 #include <opencv2/core/hal/interface.h>
 #include <opencv2/imgcodecs/imgcodecs_c.h>
 #include <unistd.h>

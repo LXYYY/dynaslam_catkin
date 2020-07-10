@@ -7,7 +7,7 @@
 *
 */
 
-#include "Viewer.h"
+#include "dynaslam/Viewer.h"
 #include <pangolin/pangolin.h>
 #include <unistd.h>
 #include <mutex>

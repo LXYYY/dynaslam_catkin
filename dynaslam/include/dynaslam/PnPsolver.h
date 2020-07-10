@@ -52,8 +52,8 @@
 #define PNPSOLVER_H
 
 #include <opencv2/core/core.hpp>
-#include "MapPoint.h"
-#include "Frame.h"
+#include "dynaslam/MapPoint.h"
+#include "dynaslam/Frame.h"
 
 namespace ORB_SLAM2
 {

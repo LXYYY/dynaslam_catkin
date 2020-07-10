@@ -28,7 +28,7 @@
  *
  */
 
-#include "regionprops.h"
+#include "dynaslam/regionprops.h"
 #include <iostream>
 
 

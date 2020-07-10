@@ -11,10 +11,10 @@
 #ifndef VIEWER_H
 #define VIEWER_H
 
-#include "FrameDrawer.h"
-#include "MapDrawer.h"
-#include "Tracking.h"
-#include "System.h"
+#include "dynaslam/FrameDrawer.h"
+#include "dynaslam/MapDrawer.h"
+#include "dynaslam/Tracking.h"
+#include "dynaslam/System.h"
 
 #include <mutex>
 

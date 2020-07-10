@@ -6,7 +6,7 @@
 */
 
 
-#include "Conversion.h"
+#include "dynaslam/Conversion.h"
 #include <iostream>
 
 

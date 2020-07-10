@@ -13,7 +13,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include "MaskNet.h"
+#include "dynaslam/MaskNet.h"
 
 namespace DynaSLAM
 {

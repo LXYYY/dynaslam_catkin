@@ -21,13 +21,13 @@
 #ifndef LOOPCLOSING_H
 #define LOOPCLOSING_H
 
-#include "KeyFrame.h"
-#include "LocalMapping.h"
-#include "Map.h"
-#include "ORBVocabulary.h"
-#include "Tracking.h"
+#include "dynaslam/KeyFrame.h"
+#include "dynaslam/LocalMapping.h"
+#include "dynaslam/Map.h"
+#include "dynaslam/ORBVocabulary.h"
+#include "dynaslam/Tracking.h"
 
-#include "KeyFrameDatabase.h"
+#include "dynaslam/KeyFrameDatabase.h"
 
 #include <thread>
 #include <mutex>

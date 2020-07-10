@@ -8,8 +8,8 @@
 */
 
 
-#include "System.h"
-#include "Converter.h"
+#include "dynaslam/System.h"
+#include "dynaslam/Converter.h"
 #include <unistd.h>
 #include <thread>
 #include <pangolin/pangolin.h>

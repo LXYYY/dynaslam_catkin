@@ -18,57 +18,47 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef KEYFRAMEDATABASE_H
-#define KEYFRAMEDATABASE_H
+#ifndef MAPDRAWER_H
+#define MAPDRAWER_H
 
-#include <vector>
-#include <list>
-#include <set>
-
-#include "KeyFrame.h"
-#include "Frame.h"
-#include "ORBVocabulary.h"
+#include"dynaslam/Map.h"
+#include"dynaslam/MapPoint.h"
+#include"dynaslam/KeyFrame.h"
+#include<pangolin/pangolin.h>
 
 #include<mutex>
-
 
 namespace ORB_SLAM2
 {
 
-class KeyFrame;
-class Frame;
-
-
-class KeyFrameDatabase
+class MapDrawer
 {
 public:
+    MapDrawer(Map* pMap, const string &strSettingPath);
 
-    KeyFrameDatabase(const ORBVocabulary &voc);
+    Map* mpMap;
 
-   void add(KeyFrame* pKF);
+    void DrawMapPoints();
+    void DrawKeyFrames(const bool bDrawKF, const bool bDrawGraph);
+    void DrawCurrentCamera(pangolin::OpenGlMatrix &Twc);
+    void SetCurrentCameraPose(const cv::Mat &Tcw);
+    void SetReferenceKeyFrame(KeyFrame *pKF);
+    void GetCurrentOpenGLCameraMatrix(pangolin::OpenGlMatrix &M);
 
-   void erase(KeyFrame* pKF);
+private:
 
-   void clear();
+    float mKeyFrameSize;
+    float mKeyFrameLineWidth;
+    float mGraphLineWidth;
+    float mPointSize;
+    float mCameraSize;
+    float mCameraLineWidth;
 
-   // Loop Detection
-   std::vector<KeyFrame *> DetectLoopCandidates(KeyFrame* pKF, float minScore);
+    cv::Mat mCameraPose;
 
-   // Relocalization
-   std::vector<KeyFrame*> DetectRelocalizationCandidates(Frame* F);
-
-protected:
-
-  // Associated vocabulary
-  const ORBVocabulary* mpVoc;
-
-  // Inverted file
-  std::vector<list<KeyFrame*> > mvInvertedFile;
-
-  // Mutex
-  std::mutex mMutex;
+    std::mutex mMutexCamera;
 };
 
 } //namespace ORB_SLAM
 
-#endif
+#endif // MAPDRAWER_H

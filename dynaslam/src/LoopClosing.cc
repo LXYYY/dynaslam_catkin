@@ -18,15 +18,15 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "LoopClosing.h"
+#include "dynaslam/LoopClosing.h"
 
-#include "Sim3Solver.h"
+#include "dynaslam/Sim3Solver.h"
 
-#include "Converter.h"
+#include "dynaslam/Converter.h"
 
-#include "Optimizer.h"
+#include "dynaslam/Optimizer.h"
 
-#include "ORBmatcher.h"
+#include "dynaslam/ORBmatcher.h"
 #include <unistd.h>
 #include<mutex>
 #include<thread>

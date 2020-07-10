@@ -14,19 +14,19 @@
 #include<opencv2/core/core.hpp>
 #include<opencv2/features2d/features2d.hpp>
 
-#include"Viewer.h"
-#include"FrameDrawer.h"
-#include"Map.h"
-#include"LocalMapping.h"
-#include"LoopClosing.h"
-#include"Frame.h"
-#include "ORBVocabulary.h"
-#include"KeyFrameDatabase.h"
-#include"ORBextractor.h"
-#include "Initializer.h"
-#include "MapDrawer.h"
-#include "System.h"
-#include "Geometry.h"
+#include"dynaslam/Viewer.h"
+#include"dynaslam/FrameDrawer.h"
+#include"dynaslam/Map.h"
+#include"dynaslam/LocalMapping.h"
+#include"dynaslam/LoopClosing.h"
+#include"dynaslam/Frame.h"
+#include "dynaslam/ORBVocabulary.h"
+#include"dynaslam/KeyFrameDatabase.h"
+#include"dynaslam/ORBextractor.h"
+#include "dynaslam/Initializer.h"
+#include "dynaslam/MapDrawer.h"
+#include "dynaslam/System.h"
+#include "dynaslam/Geometry.h"
 
 #include <mutex>
 

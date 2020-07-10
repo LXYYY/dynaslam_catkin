@@ -15,15 +15,15 @@
 #include<thread>
 #include<opencv2/core/core.hpp>
 
-#include "Tracking.h"
-#include "FrameDrawer.h"
-#include "MapDrawer.h"
-#include "Map.h"
-#include "LocalMapping.h"
-#include "LoopClosing.h"
-#include "KeyFrameDatabase.h"
-#include "ORBVocabulary.h"
-#include "Viewer.h"
+#include "dynaslam/Tracking.h"
+#include "dynaslam/FrameDrawer.h"
+#include "dynaslam/MapDrawer.h"
+#include "dynaslam/Map.h"
+#include "dynaslam/LocalMapping.h"
+#include "dynaslam/LoopClosing.h"
+#include "dynaslam/KeyFrameDatabase.h"
+#include "dynaslam/ORBVocabulary.h"
+#include "dynaslam/Viewer.h"
 
 namespace ORB_SLAM2
 {

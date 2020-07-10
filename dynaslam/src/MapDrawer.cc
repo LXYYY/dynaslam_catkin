@@ -18,9 +18,9 @@
 * along with ORB-SLAM2. If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "MapDrawer.h"
-#include "MapPoint.h"
-#include "KeyFrame.h"
+#include "dynaslam/MapDrawer.h"
+#include "dynaslam/MapPoint.h"
+#include "dynaslam/KeyFrame.h"
 #include <pangolin/pangolin.h>
 #include <mutex>
 

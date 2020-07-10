@@ -12,12 +12,12 @@
 
 #include<vector>
 
-#include "MapPoint.h"
+#include "dynaslam/MapPoint.h"
 #include <DBoW2/BowVector.h>
 #include <DBoW2/FeatureVector.h>
-#include "ORBVocabulary.h"
-#include "KeyFrame.h"
-#include "ORBextractor.h"
+#include "dynaslam/ORBVocabulary.h"
+#include "dynaslam/KeyFrame.h"
+#include "dynaslam/ORBextractor.h"
 
 #include <opencv2/opencv.hpp>
 

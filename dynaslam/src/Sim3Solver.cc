@@ -19,14 +19,14 @@
 */
 
 
-#include "Sim3Solver.h"
+#include "dynaslam/Sim3Solver.h"
 
 #include <vector>
 #include <cmath>
 #include <opencv2/core/core.hpp>
 
-#include "KeyFrame.h"
-#include "ORBmatcher.h"
+#include "dynaslam/KeyFrame.h"
+#include "dynaslam/ORBmatcher.h"
 
 #include <DUtils/Random.h>
 

@@ -7,9 +7,9 @@
 *
 */
 
-#include "KeyFrame.h"
-#include "Converter.h"
-#include "ORBmatcher.h"
+#include "dynaslam/KeyFrame.h"
+#include "dynaslam/Converter.h"
+#include "dynaslam/ORBmatcher.h"
 #include<mutex>
 
 namespace ORB_SLAM2

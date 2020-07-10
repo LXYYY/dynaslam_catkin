@@ -15,9 +15,9 @@
 #include <unistd.h>
 #include<opencv2/core/core.hpp>
 
-#include "Geometry.h"
-#include "MaskNet.h"
-#include <System.h>
+#include <dynaslam/Geometry.h>
+#include <dynaslam/MaskNet.h>
+#include <dynaslam/System.h>
 
 using namespace std;
 

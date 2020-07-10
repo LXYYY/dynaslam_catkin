@@ -19,7 +19,7 @@
 */
 
 
-#include "Converter.h"
+#include "dynaslam/Converter.h"
 
 namespace ORB_SLAM2
 {

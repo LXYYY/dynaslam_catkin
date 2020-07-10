@@ -5,10 +5,10 @@
 *
 */
 
-#include "Geometry.h"
+#include "dynaslam/Geometry.h"
 #include <algorithm>
-#include "Frame.h"
-#include "Tracking.h"
+#include "dynaslam/Frame.h"
+#include "dynaslam/Tracking.h"
 
 namespace DynaSLAM
 {

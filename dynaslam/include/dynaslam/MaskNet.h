@@ -34,8 +34,8 @@ class Mat;
 #include <opencv2/imgproc.hpp>
 #include <string>
 #include <vector>
-#include "include/Conversion.h"
-#include "include/Parameters.h"
+#include "dynaslam/Conversion.h"
+#include "dynaslam/Parameters.h"
 
 namespace DynaSLAM
 {

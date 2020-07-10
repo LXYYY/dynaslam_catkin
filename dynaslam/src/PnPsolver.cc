@@ -50,7 +50,7 @@
 
 #include <iostream>
 
-#include "PnPsolver.h"
+#include "dynaslam/PnPsolver.h"
 
 #include <vector>
 #include <cmath>
