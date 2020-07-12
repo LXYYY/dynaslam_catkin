@@ -14,27 +14,32 @@
 #include "data_format.hpp"
 namespace tf_mask_rcnn_detector
 {
-struct MaskRCNNParameters
+class MaskRCNNParameters
 {
-  int inputTnsW;        //输入tensor的宽
-  int inputTnsH;        //输入tensor的高度
-  int inputTnsC = 3;    //输入tensor的通道 input tensor channels,same as image channels
-  int inputImgW = 512;  //输入图像的宽度 image width
-  int inputImgH = 512;  //输入图像的高度 image height
-  int inputImgC = 3;    //输入图像的通道 image channels
+public:
+  int inputTnsW;      //输入tensor的宽
+  int inputTnsH;      //输入tensor的高度
+  int inputTnsC = 3;  //输入tensor的通道 input tensor channels,same as image channels
+  // int inputImgW = 512;  //输入图像的宽度 image width
+  // int inputImgH = 512;  //输入图像的高度 image height
+  // int inputImgC = 3;    //输入图像的通道 image channels
   std::vector<int> inputImageShape = { 1241, 376, 3 };
+  std::vector<int> resizedImageShape;
   int imageMinDim = 800;
   int imageMaxDim = 1024;
   bool imagePadding = true;
   int numInputImage = 1;
   int numClasses = 1 + 80;
   int tfMaskRCNNImageMetaDataLength;  //=12+num_classes;//这里的19是12+7(7是有七类)  //图像的meta数据的长度,一般
+  int imagePerGPU = 1;
+  int GPUCount = 1;
   int batchSize = 1;
-  int rpnAnchorScales[5] = { 32, 64, 128, 256, 512 };  // rpn阶段生成的anchor的尺度
-  float rpnAnchorRatios[3] = { 0.5, 1, 2 };            // rpn阶段生成的anchor的缩放因子
-  float backboneStrides[5] = { 4, 8, 16, 32,
+  std::vector<int> rpnAnchorScales = { 32, 64, 128, 256, 512 };  // rpn阶段生成的anchor的尺度
+  std::vector<float> rpnAnchorRatios = { 0.5, 1, 2 };            // rpn阶段生成的anchor的缩放因子
+  std::vector<float> backboneStrides = { 4, 8, 16, 32,
                                64 };  //用于计算输入图像经过backbone的每一个阶段(可能是pooling或者conv等down
                                       // sample操作导致feature map缩小后的尺寸,这一部分没细看)后feature图的长宽
+  std::vector<std::vector<int>> backboneShapes;
   int rpnAnchorStride = 1;                          // rpn阶段生成的anchor之间的间隔
   float meanPixel[3] = { 123.7f, 116.8f, 103.9f };  //图像三个通道对应的要减去的均值
   //下面是记录数组对应的个数,貌似可用sizeof来计算.....算了不想每次都计算,总觉得以后会用到...
@@ -47,6 +52,20 @@ struct MaskRCNNParameters
   std::string outputTensorNames[7] = { "output_detections", "output_mrcnn_class", "output_mrcnn_bbox",
                                        "output_mrcnn_mask", "output_rois",        " output_rpn_class",
                                        "output_rpn_bbox" };  //网络输出的tensor的名字,对应于模型
+  MaskRCNNParameters()
+  {
+    batchSize = imagePerGPU * GPUCount;
+    resizedImageShape = { imageMaxDim, imageMaxDim, 3 };
+    computeBackboneShapes();
+  }
+
+private:
+  void computeBackboneShapes()
+  {
+    for (float &backboneStride : backboneStrides)
+      backboneShapes.push_back({ static_cast<int>(ceil(resizedImageShape[0] / backboneStride)),
+                                 static_cast<int>(ceil(resizedImageShape[1] / backboneStride)), 3 });
+  }
 };
 class TensorFlowMaskRCNNDetector
 {
@@ -68,19 +87,23 @@ private:
   tensorflow::GraphDef mGraphDef;
 
 private:
+  void BuildTensors();
   void ComposeImageMeta();
   void GetAnchors();
+  void GeneratePyramidAnchors();
 
   // float mImageMeta[93] = {};  // dim num from dynaslam
   int mBackboneShape[5][2];  // for backbone_shape
   int mAnchorCache[2] = {};  //用于缓存 for cache ;
+  tensorflow::Tensor inputTensor;
   tensorflow::Tensor mtInputMetaDataTensor;
   tensorflow::Tensor mtInputAnchorsTensor;
   Eigen::MatrixXf mFinalBox;
   Eigen::MatrixXf mFinalBoxNorm;
   Eigen::MatrixXf mFinalboxMat;
 
-  const MaskRCNNParameters mParameters;
+  // TODO should be const
+  MaskRCNNParameters mParameters;
 
 public:
   cv::Mat DetectImages(std::vector<cv::Mat> &images)
@@ -89,10 +112,6 @@ public:
     if (images.at(0).channels() == 1)
       for (cv::Mat &image : images)
         cv::cvtColor(image, image, CV_GRAY2BGR);
-
-    tensorflow::Tensor inputTensor =
-        tensorflow::Tensor(tensorflow::DT_FLOAT, { mParameters.batchSize, mParameters.inputImgH, mParameters.inputImgW,
-                                                   mParameters.inputImgC });
 
     MoldInputImages(images);
     CvMatsToTensor(images, &inputTensor);
@@ -116,6 +135,7 @@ private:
                    image);
     }
   }
+
   void ResizeImage(cv::Mat &image, std::vector<int> &window)
   {
     int minDim = mParameters.imageMinDim;
@@ -151,6 +171,7 @@ private:
       window = { topPad, leftPad, h + topPad, w + leftPad };
     }
   }
+
   void CvMatsToTensor(const std::vector<cv::Mat> &inputImages, tensorflow::Tensor *outputTensor)
   {
     // TODO need to minus mean?

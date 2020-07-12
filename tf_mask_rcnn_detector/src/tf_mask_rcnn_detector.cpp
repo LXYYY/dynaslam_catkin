@@ -6,7 +6,7 @@ namespace tf_mask_rcnn_detector
 TensorFlowMaskRCNNDetector::TensorFlowMaskRCNNDetector(const MaskRCNNParameters &parameters) : mParameters(parameters)
 {
   ComposeImageMeta();
-  GetAnchors();
+  GeneratePyramidAnchors();
 }
 
 TensorFlowMaskRCNNDetector::~TensorFlowMaskRCNNDetector()
@@ -17,23 +17,24 @@ TensorFlowMaskRCNNDetector::~TensorFlowMaskRCNNDetector()
   {
     mpSession->Close();
     std::cout << "Session closed." << std::endl;
+    mbSession_open = false;
   }
 }
 
 void TensorFlowMaskRCNNDetector::LoadModel(std::string modelPath)
 {
-  tensorflow::SessionOptions opts;
-
   std::cout << "Loading model from " << modelPath << std::endl;
-  tensorflow::Status status = NewSession(opts, &mpSession);
-  tensorflow::Status status_load = ReadBinaryProto(tensorflow::Env::Default(), modelPath, &mGraphDef);
 
+  tensorflow::SessionOptions opts;
+  tensorflow::Status status = NewSession(opts, &mpSession);
+
+  tensorflow::Status status_load = ReadBinaryProto(tensorflow::Env::Default(), modelPath, &mGraphDef);
   if (!status_load.ok())
   {
     throw std::runtime_error("Error: Loading model failed! " + status_load.ToString());
   }
-  tensorflow::Status status_create = mpSession->Create(mGraphDef);
 
+  tensorflow::Status status_create = mpSession->Create(mGraphDef);
   if (!status_create.ok())
   {
     throw std::runtime_error("Error: Creating graph in session failed! " + status_create.ToString());
@@ -50,6 +51,13 @@ void TensorFlowMaskRCNNDetector::LoadModel(std::string modelPath)
 //   ComposeImageMeta();
 //   GetAnchors();
 // }
+
+void TensorFlowMaskRCNNDetector::BuildTensors()
+{
+  inputTensor =
+      tensorflow::Tensor(tensorflow::DT_FLOAT, { mParameters.batchSize, mParameters.resizedImageShape[0],
+                                                 mParameters.resizedImageShape[1], mParameters.resizedImageShape[2] });
+}
 
 void TensorFlowMaskRCNNDetector::ComposeImageMeta()
 {
@@ -71,6 +79,150 @@ void TensorFlowMaskRCNNDetector::ComposeImageMeta()
     std::copy_n(imageMeta.begin(), imageMeta.size(), inputMetadataTensorData + i * imageMeta.size());
 }
 
+void TensorFlowMaskRCNNDetector::GeneratePyramidAnchors()
+{
+  int nFinalBoxesRows = 0;  //用于统计五个mParameters.rpnAnchorScales尺度对应的所有boxes的行数,可以先不看这个
+  std::vector<Eigen::MatrixXf> vemBoxes;
+  for (int i = 0; i < mParameters.rpnAnchorScales.size(); i++)
+  {
+    int scale = mParameters.rpnAnchorScales.at(i);
+    int numRpnAnchorRatios = mParameters.rpnAnchorRatios.size();
+    int numRpnAnchorScales = mParameters.rpnAnchorScales.size();
+    Eigen::RowVectorXf evScales(1);  //遍历并且临时存储mParameters.rpnAnchorScales[5]={32, 64, 128, 256,
+    Eigen::VectorXf evRatios(mParameters.rpnAnchorRatios.size());
+    Eigen::MatrixXf emScales = Eigen::MatrixXf(numRpnAnchorRatios, 1);  //();
+    Eigen::MatrixXf emRatios = Eigen::MatrixXf(numRpnAnchorRatios, 1);  //();
+    Eigen::MatrixXf emHeights;  //=Eigen::MatrixXf(mParameters.numRpnAnchorRatios, 1);//();
+    Eigen::MatrixXf emWidths;   //=Eigen::MatrixXf(mParameters.numRpnAnchorRatios, 1);//();
+    evScales(0) = mParameters.rpnAnchorScales.at(i);
+
+    //构造np.array(ratios)
+    for (int nR = 0; nR < numRpnAnchorRatios;nR++)
+      evRatios(nR) = mParameters.rpnAnchorRatios.at(nR);
+    for (int nRc = 0; nRc < emRatios.cols(); nRc++)
+      emRatios.col(nRc) << evRatios;
+    for (int nS = 0; nS < emScales.rows(); nS++)
+      emScales.row(nS) << evScales;
+
+    emHeights = emScales.cwiseQuotient(emRatios.cwiseSqrt());
+    emWidths = emScales.cwiseProduct(emRatios.cwiseSqrt());
+
+    int step = mParameters.rpnAnchorStride;
+    int low = 0;
+    int hightY = mParameters.backboneShapes.at(i).at(0);
+    int hightX = mParameters.backboneShapes.at(i).at(1);
+    Eigen::RowVectorXf evShiftX, evShiftY;
+    int realsizeY = ((hightY - low) / step);
+    int realsizeX = ((hightX - low) / step);
+    evShiftX.setLinSpaced(realsizeX, low, low + step * (realsizeX - 1));
+    evShiftY.setLinSpaced(realsizeY, low, low + step * (realsizeY - 1));
+    evShiftX *= mParameters.backboneStrides.at(i);
+    evShiftY *= mParameters.backboneStrides.at(i);
+
+    Eigen::MatrixXf emShiftX(evShiftY.cols(), evShiftX.cols());
+    Eigen::MatrixXf emShiftY(evShiftY.cols(), evShiftX.cols());
+    for (int nrow = 0; nrow < emShiftX.rows(); nrow++)
+      emShiftX.row(nrow) = evShiftX;
+    for (int ncol = 0; ncol < emShiftY.cols(); ncol++)
+      emShiftY.col(ncol) = evShiftY;
+    Eigen::RowVectorXf emHeightsFlat(
+        Eigen::Map<Eigen::VectorXf>(emHeights.data(), emHeights.rows() * emHeights.cols()));
+    Eigen::RowVectorXf emWidthsFlat(Eigen::Map<Eigen::VectorXf>(emWidths.data(), emWidths.rows() * emWidths.cols()));
+
+    emShiftX.transposeInPlace();
+    emShiftY.transposeInPlace();
+    Eigen::RowVectorXf emShiftYFlat(Eigen::Map<Eigen::VectorXf>(emShiftY.data(), emShiftY.rows() * emShiftY.cols()));
+    // Eigen::RowVectorXf
+    // shifts_xMatFlat(Eigen::Map<Eigen::VectorXf>(shifts_xMat.data(),shifts_xMat.rows()*shifts_xMat.cols(),Eigen::ColMajor));
+    Eigen::RowVectorXf emShiftXFlat(Eigen::Map<Eigen::VectorXf>(emShiftX.data(), emShiftX.rows() * emShiftX.cols()));
+    Eigen::MatrixXf emBoxWidths = Eigen::MatrixXf(emShiftXFlat.cols(), emWidthsFlat.cols());    //();
+    Eigen::MatrixXf emBoxCenterX = Eigen::MatrixXf(emShiftXFlat.cols(), emWidthsFlat.cols());   //();
+    Eigen::MatrixXf emBoxHeights = Eigen::MatrixXf(emShiftYFlat.cols(), emHeightsFlat.cols());  //();
+    Eigen::MatrixXf emBoxCenterY = Eigen::MatrixXf(emShiftYFlat.cols(), emHeightsFlat.cols());  //();
+    for (int nrow = 0; nrow < emBoxWidths.rows(); nrow++)
+    {
+      emBoxWidths.row(i) = emWidthsFlat;
+      emBoxHeights.row(i) = emHeightsFlat;
+    }
+    for (int ncol = 0; ncol < emBoxHeights.cols(); ncol++)
+    {
+      emBoxCenterX.col(ncol) = emShiftXFlat;
+      emBoxCenterY.col(ncol) = emShiftYFlat;
+    }
+    Eigen::MatrixXf emY1 = emBoxCenterY - emBoxHeights * 0.5;
+    Eigen::MatrixXf emX1 = emBoxCenterX - emBoxWidths * 0.5;
+    Eigen::MatrixXf emY2 = emBoxCenterY + emBoxHeights * 0.5;
+    Eigen::MatrixXf emX2 = emBoxCenterX + emBoxWidths * 0.5;
+    emY1.transposeInPlace();
+    emX1.transposeInPlace();
+    emY2.transposeInPlace();
+    emX2.transposeInPlace();
+    Eigen::RowVectorXf emY1Flat(Eigen::Map<Eigen::VectorXf>(emY1.data(), emY1.rows() * emY1.cols()));
+    Eigen::RowVectorXf emX1Flat(Eigen::Map<Eigen::VectorXf>(emX1.data(), emX1.rows() * emX1.cols()));
+    Eigen::RowVectorXf emY2Flat(Eigen::Map<Eigen::VectorXf>(emY2.data(), emY2.rows() * emY2.cols()));
+    Eigen::RowVectorXf emX2Flat(Eigen::Map<Eigen::VectorXf>(emX2.data(), emX2.rows() * emX2.cols()));
+    Eigen::MatrixXf emBoxes(emY1.rows() * emY1.cols(), 4);  //注意这里的boxes不是python代码里面对应的boxes
+    emBoxes.col(0) = emY1Flat;
+    emBoxes.col(1) = emX1Flat;
+    emBoxes.col(2) = emY2Flat;
+    emBoxes.col(3) = emX2Flat;
+    vemBoxes.push_back(emBoxes);
+    nFinalBoxesRows += emBoxes.rows();
+  }
+  mFinalBox = Eigen::MatrixXf(nFinalBoxesRows, 4);
+  int nBeginX = 0;
+  for (int i = 0; i < vemBoxes.size(); i++)
+  {
+    mFinalBox.block(nBeginX, 0, vemBoxes[i].rows(), vemBoxes[i].cols()) = vemBoxes[i];
+    nBeginX += vemBoxes[i].rows();
+  }
+
+  Eigen::MatrixXf scaleMat_1r(1, mFinalBox.cols());
+  Eigen::MatrixXf shiftMat_1r(1, mFinalBox.cols());
+  scaleMat_1r << float(mParameters.resizedImageShape[1] - 1), float(mParameters.resizedImageShape[0] - 1),
+      float(mParameters.resizedImageShape[1] - 1), float(mParameters.resizedImageShape[0] - 1);
+  shiftMat_1r << 0.f, 0.f, 1.f, 1.f;
+  //因为上一步得到是scaleMat_1r,shiftMat_1r是向量,接下来创建对应的矩阵,该矩阵与finalBox有相同的
+  //形状
+  Eigen::MatrixXf scaleMat =
+      scaleMat_1r.colwise().replicate(mFinalBox.rows());  //通过重复与finalBox同样的行数构建scaleMat
+  Eigen::MatrixXf shiftMat = shiftMat_1r.colwise().replicate(mFinalBox.rows());  //同上
+  Eigen::MatrixXf tmpMat = mFinalBox - shiftMat;   // finalBox对应位置元素减去偏移量
+  mFinalBoxNorm = tmpMat.cwiseQuotient(scaleMat);  // finalBox对应位置元素处以scale
+  //至此完成了python代码中的boxes(mFinalBoxNorm),下一步把mFinalBoxNorm矩阵弄成Eigen::tensor类型的inputAnchorsTensor
+  //再通过inputAnchorsTensor填充到tensorflow::tensor类型的mtInputAnchorsTensor构建最后送入模型的anchor boxes
+
+  mtInputAnchorsTensor =
+      tensorflow::Tensor(tensorflow::DT_FLOAT, { mParameters.batchSize, mFinalBoxNorm.rows(),
+                                                 mFinalBoxNorm.cols() });  //初始化mtInputAnchorsTensor
+  // float *p=mtInputAnchorsTensor.flat<float>().data();
+  //通mFinalBoxNorm矩阵构建Eigen::tensor类型的inputAnchorsTensor
+  Eigen::Tensor<float, 3> inputAnchorsTensor(1, mFinalBoxNorm.rows(), mFinalBoxNorm.cols());
+  for (int i = 0; i < mFinalBoxNorm.rows(); i++)
+  {
+    Eigen::Tensor<float, 1> eachrow(mFinalBoxNorm.cols());  //用于临时存储mFinalBoxNorm矩阵的的每一行
+    //把mFinalBoxNorm矩阵的一行放进eachrow
+    eachrow.setValues(
+        { mFinalBoxNorm.row(i)[0], mFinalBoxNorm.row(i)[1], mFinalBoxNorm.row(i)[2], mFinalBoxNorm.row(i)[3] });
+    //把eachrow放进inputAnchorsTensor的每一行
+    inputAnchorsTensor.chip(i, 1) = eachrow;
+  }
+  //把inputAnchorsTensor赋值给mtInputAnchorsTensor,注意它们两个的类型是不同的
+  auto showMap = mtInputAnchorsTensor.tensor<float, 3>();
+  for (int b = 0; b < showMap.dimension(0); b++)
+  {
+    for (int r = 0; r < showMap.dimension(1); r++)
+    {
+      for (int c = 0; c < showMap.dimension(2); c++)
+      {
+        showMap(b, r, c) = inputAnchorsTensor(0, r, c);  //这里为0是因为
+        //我的batch里面的图片都是同样尺寸的,所以它们最终的anchor boxes都是一样,
+        //只要赋值一个就行了,建议batch里面图片尺寸都是一样的,这样好处理
+      }
+    }
+  }
+}
+
 void TensorFlowMaskRCNNDetector::GetAnchors()
 {
   // tensorflow::Tensor flatTensor(tensorflow::DT_FLOAT,{1,2,4,5});
@@ -79,17 +231,17 @@ void TensorFlowMaskRCNNDetector::GetAnchors()
   // compute_mBackboneShape
   // Cache anchors and reuse if image shape is the same
   //计算图像mBackboneShapes
-  if (mParameters.inputImgH != mAnchorCache[0] ||
-      mParameters.inputImgW != mAnchorCache[1])  //如果之前计算过就不用重新计算了,相当于cache
+  if (mParameters.resizedImageShape[1] != mAnchorCache[0] ||
+      mParameters.resizedImageShape[0] != mAnchorCache[1])  //如果之前计算过就不用重新计算了,相当于cache
   {
     for (int i = 0; i < mParameters.numBackboneStrides; i++)
     {
-      mBackboneShape[i][0] = ceil(mParameters.inputImgH / mParameters.backboneStrides[i]);
-      mBackboneShape[i][1] = ceil(mParameters.inputImgW / mParameters.backboneStrides[i]);
+      mBackboneShape[i][0] = ceil(mParameters.resizedImageShape[1] / mParameters.backboneStrides[i]);
+      mBackboneShape[i][1] = ceil(mParameters.resizedImageShape[0] / mParameters.backboneStrides[i]);
     }
     // std::vector<tensorflow::Tensor> anchors;
-    std::vector<Eigen::MatrixXf> boxesVec;  // eigen矩阵类型容器,用于存储anchors
-    // boxesVec作用类似于python代码中的
+    std::vector<Eigen::MatrixXf> vemBoxes;  // eigen矩阵类型容器,用于存储anchors
+    // vemBoxes作用类似于python代码中的
     /*
        for i in range(len(scales)):
             anchors.append(generate_anchors(scales[i], ratios, feature_shapes[i],
@@ -233,19 +385,19 @@ void TensorFlowMaskRCNNDetector::GetAnchors()
       // shifts_xMatFlat(Eigen::Map<Eigen::VectorXf>(shifts_xMat.data(),shifts_xMat.rows()*shifts_xMat.cols(),Eigen::ColMajor));
       Eigen::RowVectorXf shifts_xMatFlat(
           Eigen::Map<Eigen::VectorXf>(shifts_xMat.data(), shifts_xMat.rows() * shifts_xMat.cols()));
-      Eigen::MatrixXf box_widthsMat = Eigen::MatrixXf(shifts_xMatFlat.cols(), widthsMatFlat.cols());     //();
-      Eigen::MatrixXf box_center_xMat = Eigen::MatrixXf(shifts_xMatFlat.cols(), widthsMatFlat.cols());   //();
-      Eigen::MatrixXf box_heightsMat = Eigen::MatrixXf(shifts_yMatFlat.cols(), heightsMatFlat.cols());   //();
-      Eigen::MatrixXf box_center_yMat = Eigen::MatrixXf(shifts_yMatFlat.cols(), heightsMatFlat.cols());  //();
-      for (int i = 0; i < box_widthsMat.rows(); i++)
+      Eigen::MatrixXf emBoxWidths = Eigen::MatrixXf(shifts_xMatFlat.cols(), widthsMatFlat.cols());    //();
+      Eigen::MatrixXf emBoxCenterX = Eigen::MatrixXf(shifts_xMatFlat.cols(), widthsMatFlat.cols());   //();
+      Eigen::MatrixXf emBoxHeights = Eigen::MatrixXf(shifts_yMatFlat.cols(), heightsMatFlat.cols());  //();
+      Eigen::MatrixXf emBoxCenterY = Eigen::MatrixXf(shifts_yMatFlat.cols(), heightsMatFlat.cols());  //();
+      for (int i = 0; i < emBoxWidths.rows(); i++)
       {
-        box_widthsMat.row(i) = widthsMatFlat;
-        box_heightsMat.row(i) = heightsMatFlat;
+        emBoxWidths.row(i) = widthsMatFlat;
+        emBoxHeights.row(i) = heightsMatFlat;
       }
-      for (int i = 0; i < box_heightsMat.cols(); i++)
+      for (int i = 0; i < emBoxHeights.cols(); i++)
       {
-        box_center_xMat.col(i) = shifts_xMatFlat;
-        box_center_yMat.col(i) = shifts_yMatFlat;
+        emBoxCenterX.col(i) = shifts_xMatFlat;
+        emBoxCenterY.col(i) = shifts_yMatFlat;
       }
 
       // Convert to corner coordinates (y1, x1, y2, x2)
@@ -259,38 +411,38 @@ void TensorFlowMaskRCNNDetector::GetAnchors()
       // (box_center_y'e+box_height'e,box_center_x'e+box_width'e) then concat C and D get mat E whose col format is
       // (box_center_y'e-box_height'e,box_center_x'e-box_width'e
       // ,box_center_y'e+box_height'e,box_center_x'e+box_width'e) and that is (y1,x1,y2,x2) in eigen3,different to
-      // python first we have got the matrix box_center_yMat box_center_xMat box_heightsMat box_widthsMat for
-      // abbreviation is center_yMat,center_xMat,heightMat,widthMat center_yMat-0.5*heightMat=y1Mat
-      // center_yMat+0.5*heightMat=y2Mat
-      // center_xMat-0.5*widthMat=x1Mat
-      // center_xMat+0.5*widthMat=x2Mat
-      // then generate the matrix boxes whose col format is (y1Mat's e,x1Mat's e,y2Mat's e ,x2Mat's e),rows in the num
+      // python first we have got the matrix emBoxCenterY emBoxCenterX emBoxHeights emBoxWidths for
+      // abbreviation is center_yMat,center_xMat,heightMat,widthMat center_yMat-0.5*heightMat=emY1
+      // center_yMat+0.5*heightMat=emY2
+      // center_xMat-0.5*widthMat=emX1
+      // center_xMat+0.5*widthMat=emX2
+      // then generate the matrix boxes whose col format is (emY1's e,emX1's e,emY2's e ,emX2's e),rows in the num
 
       //进行如下操作
       // boxes = np.concatenate([box_centers - 0.5 * box_sizes,
       // box_centers + 0.5 * box_sizes], axis=1)
       // boxes形式如[(y1, x1, y2, x2),...,...]
-      Eigen::MatrixXf y1Mat = box_center_yMat - box_heightsMat * 0.5;
-      Eigen::MatrixXf x1Mat = box_center_xMat - box_widthsMat * 0.5;
-      Eigen::MatrixXf y2Mat = box_center_yMat + box_heightsMat * 0.5;
-      Eigen::MatrixXf x2Mat = box_center_xMat + box_widthsMat * 0.5;
-      y1Mat.transposeInPlace();
-      x1Mat.transposeInPlace();
-      y2Mat.transposeInPlace();
-      x2Mat.transposeInPlace();
-      Eigen::RowVectorXf y1MatFlat(Eigen::Map<Eigen::VectorXf>(y1Mat.data(), y1Mat.rows() * y1Mat.cols()));
-      Eigen::RowVectorXf x1MatFlat(Eigen::Map<Eigen::VectorXf>(x1Mat.data(), x1Mat.rows() * x1Mat.cols()));
-      Eigen::RowVectorXf y2MatFlat(Eigen::Map<Eigen::VectorXf>(y2Mat.data(), y2Mat.rows() * y2Mat.cols()));
-      Eigen::RowVectorXf x2MatFlat(Eigen::Map<Eigen::VectorXf>(x2Mat.data(), x2Mat.rows() * x2Mat.cols()));
-      Eigen::MatrixXf boxes(y1Mat.rows() * y1Mat.cols(), 4);  //注意这里的boxes不是python代码里面对应的boxes
-      boxes.col(0) = y1MatFlat;
-      boxes.col(1) = x1MatFlat;
-      boxes.col(2) = y2MatFlat;
-      boxes.col(3) = x2MatFlat;
+      Eigen::MatrixXf emY1 = emBoxCenterY - emBoxHeights * 0.5;
+      Eigen::MatrixXf emX1 = emBoxCenterX - emBoxWidths * 0.5;
+      Eigen::MatrixXf emY2 = emBoxCenterY + emBoxHeights * 0.5;
+      Eigen::MatrixXf emX2 = emBoxCenterX + emBoxWidths * 0.5;
+      emY1.transposeInPlace();
+      emX1.transposeInPlace();
+      emY2.transposeInPlace();
+      emX2.transposeInPlace();
+      Eigen::RowVectorXf emY1Flat(Eigen::Map<Eigen::VectorXf>(emY1.data(), emY1.rows() * emY1.cols()));
+      Eigen::RowVectorXf emX1Flat(Eigen::Map<Eigen::VectorXf>(emX1.data(), emX1.rows() * emX1.cols()));
+      Eigen::RowVectorXf emY2Flat(Eigen::Map<Eigen::VectorXf>(emY2.data(), emY2.rows() * emY2.cols()));
+      Eigen::RowVectorXf emX2Flat(Eigen::Map<Eigen::VectorXf>(emX2.data(), emX2.rows() * emX2.cols()));
+      Eigen::MatrixXf boxes(emY1.rows() * emY1.cols(), 4);  //注意这里的boxes不是python代码里面对应的boxes
+      boxes.col(0) = emY1Flat;
+      boxes.col(1) = emX1Flat;
+      boxes.col(2) = emY2Flat;
+      boxes.col(3) = emX2Flat;
       //到此已经完成单独一个mParameters.rpnAnchorScales[i]尺度对应的boxes了
       //下一步把它放进容器里
 
-      boxesVec.push_back(boxes);
+      vemBoxes.push_back(boxes);
       finalBoxesRows += boxes.rows();  //统计五个mParameters.rpnAnchorScales尺度对应的所有boxes的行数
                                        // break;
     }
@@ -300,16 +452,16 @@ void TensorFlowMaskRCNNDetector::GetAnchors()
     // Eigen::VectorXf a(3);
     // Eigen::VectorXf b(4);
     // Eigen::VectorXf c(7);
-    //取出boxesVec容器里面每个boxes构建最终的finalBox矩阵(对应boxes)
+    //取出vemBoxes容器里面每个boxes构建最终的finalBox矩阵(对应boxes)
     //至此完成了boxes的构建
     int beginX = 0;
-    for (int i = 0; i < boxesVec.size(); i++)
+    for (int i = 0; i < vemBoxes.size(); i++)
     {
       // mat1.block<rows,cols>(i,j)
       //矩阵块赋值
-      mFinalBox.block(beginX, 0, boxesVec[i].rows(), boxesVec[i].cols()) = boxesVec[i];
-      beginX += boxesVec[i].rows();
-      // tensorflow::Tensor matTensor(tensorflow::DT_FLOAT,{boxesVec[i].rows(),boxesVec[i].cols()});
+      mFinalBox.block(beginX, 0, vemBoxes[i].rows(), vemBoxes[i].cols()) = vemBoxes[i];
+      beginX += vemBoxes[i].rows();
+      // tensorflow::Tensor matTensor(tensorflow::DT_FLOAT,{vemBoxes[i].rows(),vemBoxes[i].cols()});
     }
 
     /*get normalization finalbox
@@ -323,8 +475,8 @@ void TensorFlowMaskRCNNDetector::GetAnchors()
     //先创建scale,shift两个向量
     Eigen::MatrixXf scaleMat_1r(1, mFinalBox.cols());
     Eigen::MatrixXf shiftMat_1r(1, mFinalBox.cols());
-    scaleMat_1r << float(mParameters.inputImgH - 1), float(mParameters.inputImgW - 1), float(mParameters.inputImgH - 1),
-        float(mParameters.inputImgW - 1);
+    scaleMat_1r << float(mParameters.resizedImageShape[1] - 1), float(mParameters.resizedImageShape[0] - 1),
+        float(mParameters.resizedImageShape[1] - 1), float(mParameters.resizedImageShape[0] - 1);
     shiftMat_1r << 0.f, 0.f, 1.f, 1.f;
     //因为上一步得到是scaleMat_1r,shiftMat_1r是向量,接下来创建对应的矩阵,该矩阵与finalBox有相同的
     //形状
