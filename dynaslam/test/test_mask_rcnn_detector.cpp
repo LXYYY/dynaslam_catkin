@@ -4,6 +4,7 @@
 #include <string>
 #include "dynaslam/MaskNet.h"
 #include "dynaslam/Parameters.h"
+
 class MaskRCNNDetectorTest : public ::testing::Test
 {
 protected:
@@ -29,4 +30,8 @@ TEST_F(MaskRCNNDetectorTest, test_mask_detector_working)
 {
   cv::Mat tImage;
   ASSERT_NO_THROW(maskNet->GetSegmentation(tImage));
+}
+
+TEST_F(MaskRCNNDetectorTest, check_tf_version)
+{
 }

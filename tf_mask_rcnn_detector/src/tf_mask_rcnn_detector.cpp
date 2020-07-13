@@ -7,6 +7,7 @@ TensorFlowMaskRCNNDetector::TensorFlowMaskRCNNDetector(const MaskRCNNParameters 
 {
   ComposeImageMeta();
   GeneratePyramidAnchors();
+  // GetAnchors();
 }
 
 TensorFlowMaskRCNNDetector::~TensorFlowMaskRCNNDetector()
@@ -97,7 +98,7 @@ void TensorFlowMaskRCNNDetector::GeneratePyramidAnchors()
     evScales(0) = mParameters.rpnAnchorScales.at(i);
 
     //构造np.array(ratios)
-    for (int nR = 0; nR < numRpnAnchorRatios;nR++)
+    for (int nR = 0; nR < numRpnAnchorRatios; nR++)
       evRatios(nR) = mParameters.rpnAnchorRatios.at(nR);
     for (int nRc = 0; nRc < emRatios.cols(); nRc++)
       emRatios.col(nRc) << evRatios;
@@ -149,14 +150,15 @@ void TensorFlowMaskRCNNDetector::GeneratePyramidAnchors()
       emBoxCenterX.col(ncol) = emShiftXFlat;
       emBoxCenterY.col(ncol) = emShiftYFlat;
     }
-    Eigen::MatrixXf emY1 = emBoxCenterY - emBoxHeights * 0.5;
-    Eigen::MatrixXf emX1 = emBoxCenterX - emBoxWidths * 0.5;
-    Eigen::MatrixXf emY2 = emBoxCenterY + emBoxHeights * 0.5;
-    Eigen::MatrixXf emX2 = emBoxCenterX + emBoxWidths * 0.5;
-    emY1.transposeInPlace();
-    emX1.transposeInPlace();
-    emY2.transposeInPlace();
-    emX2.transposeInPlace();
+
+    Eigen::MatrixXf emY1 = (emBoxCenterY - emBoxHeights * 0.5).transpose();
+    Eigen::MatrixXf emX1 = (emBoxCenterX - emBoxWidths * 0.5).transpose();
+    Eigen::MatrixXf emY2 = (emBoxCenterY + emBoxHeights * 0.5).transpose();
+    Eigen::MatrixXf emX2 = (emBoxCenterX + emBoxWidths * 0.5).transpose();
+    // emY1.transposeInPlace();
+    // emX1.transposeInPlace();
+    // emY2.transposeInPlace();
+    // emX2.transposeInPlace();
     Eigen::RowVectorXf emY1Flat(Eigen::Map<Eigen::VectorXf>(emY1.data(), emY1.rows() * emY1.cols()));
     Eigen::RowVectorXf emX1Flat(Eigen::Map<Eigen::VectorXf>(emX1.data(), emX1.rows() * emX1.cols()));
     Eigen::RowVectorXf emY2Flat(Eigen::Map<Eigen::VectorXf>(emY2.data(), emY2.rows() * emY2.cols()));

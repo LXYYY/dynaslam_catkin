@@ -36,9 +36,10 @@ public:
   int batchSize = 1;
   std::vector<int> rpnAnchorScales = { 32, 64, 128, 256, 512 };  // rpn阶段生成的anchor的尺度
   std::vector<float> rpnAnchorRatios = { 0.5, 1, 2 };            // rpn阶段生成的anchor的缩放因子
-  std::vector<float> backboneStrides = { 4, 8, 16, 32,
-                               64 };  //用于计算输入图像经过backbone的每一个阶段(可能是pooling或者conv等down
-                                      // sample操作导致feature map缩小后的尺寸,这一部分没细看)后feature图的长宽
+  std::vector<float> backboneStrides = {
+    4, 8, 16, 32, 64
+  };  //用于计算输入图像经过backbone的每一个阶段(可能是pooling或者conv等down
+      // sample操作导致feature map缩小后的尺寸,这一部分没细看)后feature图的长宽
   std::vector<std::vector<int>> backboneShapes;
   int rpnAnchorStride = 1;                          // rpn阶段生成的anchor之间的间隔
   float meanPixel[3] = { 123.7f, 116.8f, 103.9f };  //图像三个通道对应的要减去的均值
@@ -47,11 +48,25 @@ public:
   int numBackboneStrides = 5;
   int numRpnAnchorRatios = 3;
 
-  std::string inputTensorNames[3] = { "input_image_1", "input_image_meta_1",
-                                      "input_anchors_1" };  //网络输入的tensor的名字,对应于模型
-  std::string outputTensorNames[7] = { "output_detections", "output_mrcnn_class", "output_mrcnn_bbox",
-                                       "output_mrcnn_mask", "output_rois",        " output_rpn_class",
-                                       "output_rpn_bbox" };  //网络输出的tensor的名字,对应于模型
+  std::vector<std::string> inputTensorNames = { "input_image_1", "input_image_meta_1",
+                                                "input_anchors_1" };  //网络输入的tensor的名字,对应于模型
+  std::vector<std::string> outputTensorNames = { "output_detections", "output_mrcnn_class", "output_mrcnn_bbox",
+                                                 "output_mrcnn_mask", "output_rois",        " output_rpn_class",
+                                                 "output_rpn_bbox" };  //网络输出的tensor的名字,对应于模型
+  std::vector<std::string> classNames = {
+    "BG",           "person",         "bicycle",    "car",           "motorcycle",    "airplane",     "bus",
+    "train",        "truck",          "boat",       "traffic light", "fire hydrant",  "stop sign",    "parking meter",
+    "bench",        "bird",           "cat",        "dog",           "horse",         "sheep",        "cow",
+    "elephant",     "bear",           "zebra",      "giraffe",       "backpack",      "umbrella",     "handbag",
+    "tie",          "suitcase",       "frisbee",    "skis",          "snowboard",     "sports ball",  "kite",
+    "baseball bat", "baseball glove", "skateboard", "surfboard",     "tennis racket", "bottle",       "wine glass",
+    "cup",          "fork",           "knife",      "spoon",         "bowl",          "banana",       "apple",
+    "sandwich",     "orange",         "broccoli",   "carrot",        "hot dog",       "pizza",        "donut",
+    "cake",         "chair",          "couch",      "potted plant",  "bed",           "dining table", "toilet",
+    "tv",           "laptop",         "mouse",      "remote",        "keyboard",      "cell phone",   "microwave",
+    "oven",         "toaster",        "sink",       "refrigerator",  "book",          "clock",        "vase",
+    "scissors",     "teddy bear",     "hair drier", "toothbrush"
+  };
   MaskRCNNParameters()
   {
     batchSize = imagePerGPU * GPUCount;
